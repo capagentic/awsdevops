@@ -1,0 +1,43 @@
+name: Deploy EC2
+
+on:
+  push:
+    branches:
+      - dev  # 👈 change to your branch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure AWS
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Launch EC2
+        run: |
+          # Get latest Amazon Linux 2023 AMI
+          AMI=$(aws ec2 describe-images \
+            --owners amazon \
+            --filters "Name=name,Values=al2023-ami-2023*-x86_64" "Name=state,Values=available" \
+            --query "sort_by(Images, &CreationDate)[-1].ImageId" \
+            --output text)
+
+          # Launch t3.micro (free tier eligible)
+          INSTANCE_ID=$(aws ec2 run-instances \
+            --image-id $AMI \
+            --instance-type t3.micro \
+            --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=demo-${{ github.sha }}}]" \
+            --query "Instances[0].InstanceId" \
+            --output text)
+
+          echo "✅ Launched: $INSTANCE_ID"
+
+          # Wait and print IP
+          aws ec2 wait instance-running --instance-ids $INSTANCE_ID
+          aws ec2 describe-instances \
+            --instance-ids $INSTANCE_ID \
+            --query "Reservations[0].Instances[0].PublicIpAddress" \
+            --output text
