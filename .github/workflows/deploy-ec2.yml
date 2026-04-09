@@ -3,40 +3,71 @@ name: Deploy EC2
 on:
   push:
     branches:
-      - main  # 👈 change to your branch
+      - main
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4  # 👈 needed so workflow can read your config file
+
+      - name: Read EC2 config
+        id: config
+        run: |
+          INSTANCE_TYPE=$(yq '.instance_type' ec2-config.yml)
+          REGION=$(yq '.region' ec2-config.yml)
+          AMI_OWNER=$(yq '.ami_owner' ec2-config.yml)
+          AMI_FILTER=$(yq '.ami_filter' ec2-config.yml)
+          VOLUME_SIZE=$(yq '.volume_size' ec2-config.yml)
+          INSTANCE_NAME=$(yq '.instance_name' ec2-config.yml)
+
+          echo "instance_type=$INSTANCE_TYPE" >> $GITHUB_OUTPUT
+          echo "region=$REGION"               >> $GITHUB_OUTPUT
+          echo "ami_owner=$AMI_OWNER"         >> $GITHUB_OUTPUT
+          echo "ami_filter=$AMI_FILTER"       >> $GITHUB_OUTPUT
+          echo "volume_size=$VOLUME_SIZE"     >> $GITHUB_OUTPUT
+          echo "instance_name=$INSTANCE_NAME" >> $GITHUB_OUTPUT
+
       - name: Configure AWS
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
+          aws-region: ${{ steps.config.outputs.region }}
+
+      - name: Get AMI
+        id: ami
+        run: |
+          AMI=$(aws ec2 describe-images \
+            --owners ${{ steps.config.outputs.ami_owner }} \
+            --filters \
+              "Name=name,Values=${{ steps.config.outputs.ami_filter }}" \
+              "Name=state,Values=available" \
+            --query "sort_by(Images, &CreationDate)[-1].ImageId" \
+            --output text)
+          echo "ami_id=$AMI" >> $GITHUB_OUTPUT
+          echo "Using AMI: $AMI"
 
       - name: Launch EC2
         run: |
-          # Get latest Amazon Linux 2023 AMI
-          AMI=$(aws ec2 describe-images \
-            --owners amazon \
-            --filters "Name=name,Values=al2023-ami-2023*-x86_64" "Name=state,Values=available" \
-            --query "sort_by(Images, &CreationDate)[-1].ImageId" \
-            --output text)
-
-          # Launch t3.micro (free tier eligible)
           INSTANCE_ID=$(aws ec2 run-instances \
-            --image-id $AMI \
-            --instance-type t3.micro \
-            --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=demo-${{ github.sha }}}]" \
+            --image-id ${{ steps.ami.outputs.ami_id }} \
+            --instance-type ${{ steps.config.outputs.instance_type }} \
+            --block-device-mappings \
+              "DeviceName=/dev/xvda,Ebs={VolumeSize=${{ steps.config.outputs.volume_size }}}" \
+            --tag-specifications \
+              "ResourceType=instance,Tags=[
+                {Key=Name,Value=${{ steps.config.outputs.instance_name }}-${{ github.sha }}},
+                {Key=CommitSHA,Value=${{ github.sha }}}
+              ]" \
             --query "Instances[0].InstanceId" \
             --output text)
 
           echo "✅ Launched: $INSTANCE_ID"
-
-          # Wait and print IP
           aws ec2 wait instance-running --instance-ids $INSTANCE_ID
+
+          echo "🌐 Public IP:"
           aws ec2 describe-instances \
             --instance-ids $INSTANCE_ID \
             --query "Reservations[0].Instances[0].PublicIpAddress" \
