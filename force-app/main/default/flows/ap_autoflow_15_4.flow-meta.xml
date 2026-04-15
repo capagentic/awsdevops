@@ -1,0 +1,273 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>62.0</apiVersion>
+    <description>Autolaunched flow that creates follow-up tasks for accounts based on active status and existing open tasks</description>
+    <label>ap_autoflow_15-4</label>
+    <processMetadataValues>
+        <name>BuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>CanvasMode</name>
+        <value>
+            <stringValue>AUTO_LAYOUT_CANVAS</stringValue>
+        </value>
+    </processMetadataValues>
+    <processType>AutoLaunchedFlow</processType>
+    <start>
+        <locationX>50</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>CheckDaysUntilDue</targetReference>
+        </connector>
+    </start>
+    <status>Draft</status>
+    
+    <!-- INPUT VARIABLES -->
+    <variables>
+        <name>accountId</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>true</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <name>ownerId</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>true</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <name>daysUntilDue</name>
+        <dataType>Number</dataType>
+        <isCollection>false</isCollection>
+        <isInput>true</isInput>
+        <isOutput>false</isOutput>
+        <scale>0</scale>
+    </variables>
+    
+    <!-- DECISION: CheckDaysUntilDue -->
+    <decisions>
+        <name>CheckDaysUntilDue</name>
+        <label>CheckDaysUntilDue</label>
+        <locationX>176</locationX>
+        <locationY>134</locationY>
+        <defaultConnector>
+            <targetReference>GetAccount</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>HasValue</defaultConnectorLabel>
+        <rules>
+            <name>IsNull</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>daysUntilDue</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>SetDefaultDueDays</targetReference>
+            </connector>
+            <label>IsNull</label>
+        </rules>
+    </decisions>
+    
+    <!-- ASSIGNMENT: SetDefaultDueDays -->
+    <assignments>
+        <name>SetDefaultDueDays</name>
+        <label>SetDefaultDueDays</label>
+        <locationX>50</locationX>
+        <locationY>242</locationY>
+        <assignmentItems>
+            <assignToReference>daysUntilDue</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <numberValue>3.0</numberValue>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>GetAccount</targetReference>
+        </connector>
+    </assignments>
+    
+    <!-- GET RECORDS: GetAccount -->
+    <recordLookups>
+        <name>GetAccount</name>
+        <label>GetAccount</label>
+        <locationX>176</locationX>
+        <locationY>350</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>IsAccountActive</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Id</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>accountId</elementReference>
+            </value>
+        </filters>
+        <getFirstRecordOnly>true</getFirstRecordOnly>
+        <object>Account</object>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    
+    <!-- DECISION: IsAccountActive -->
+    <decisions>
+        <name>IsAccountActive</name>
+        <label>IsAccountActive</label>
+        <locationX>176</locationX>
+        <locationY>458</locationY>
+        <defaultConnector>
+            <targetReference>CloseFlowGracefully</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>InactiveAccount</defaultConnectorLabel>
+        <rules>
+            <name>ActiveAccount</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>GetAccount.IsDeleted</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>GetOpenTasks</targetReference>
+            </connector>
+            <label>ActiveAccount</label>
+        </rules>
+    </decisions>
+    
+    <!-- GET RECORDS: GetOpenTasks -->
+    <recordLookups>
+        <name>GetOpenTasks</name>
+        <label>GetOpenTasks</label>
+        <locationX>50</locationX>
+        <locationY>566</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>HasOpenTask</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>WhatId</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>accountId</elementReference>
+            </value>
+        </filters>
+        <filters>
+            <field>Status</field>
+            <operator>NotEqualTo</operator>
+            <value>
+                <stringValue>Completed</stringValue>
+            </value>
+        </filters>
+        <getFirstRecordOnly>true</getFirstRecordOnly>
+        <object>Task</object>
+        <sortField>CreatedDate</sortField>
+        <sortOrder>Desc</sortOrder>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    
+    <!-- DECISION: HasOpenTask -->
+    <decisions>
+        <name>HasOpenTask</name>
+        <label>HasOpenTask</label>
+        <locationX>50</locationX>
+        <locationY>674</locationY>
+        <defaultConnector>
+            <targetReference>CloseFlowGracefully</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>OpenTaskExists</defaultConnectorLabel>
+        <rules>
+            <name>NoOpenTask</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>GetOpenTasks.Id</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>CreateFollowupTask</targetReference>
+            </connector>
+            <label>NoOpenTask</label>
+        </rules>
+    </decisions>
+    
+    <!-- CREATE RECORDS: CreateFollowupTask -->
+    <recordCreates>
+        <name>CreateFollowupTask</name>
+        <label>CreateFollowupTask</label>
+        <locationX>50</locationX>
+        <locationY>782</locationY>
+        <inputAssignments>
+            <field>OwnerId</field>
+            <value>
+                <elementReference>ownerId</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>WhatId</field>
+            <value>
+                <elementReference>accountId</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>Subject</field>
+            <value>
+                <stringValue>Account Follow-up</stringValue>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>Status</field>
+            <value>
+                <stringValue>Not Started</stringValue>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>Priority</field>
+            <value>
+                <stringValue>Normal</stringValue>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>ActivityDate</field>
+            <value>
+                <elementReference>fxCalculateActivityDate</elementReference>
+            </value>
+        </inputAssignments>
+        <object>Task</object>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordCreates>
+    
+    <!-- ASSIGNMENT: CloseFlowGracefully -->
+    <assignments>
+        <name>CloseFlowGracefully</name>
+        <label>CloseFlowGracefully</label>
+        <locationX>302</locationX>
+        <locationY>782</locationY>
+        <assignmentItems>
+            <assignToReference>daysUntilDue</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>daysUntilDue</elementReference>
+            </value>
+        </assignmentItems>
+    </assignments>
+    
+    <!-- FORMULA: Calculate ActivityDate -->
+    <formulas>
+        <name>fxCalculateActivityDate</name>
+        <dataType>Date</dataType>
+        <expression>TODAY() + {!daysUntilDue}</expression>
+    </formulas>
+</Flow>
