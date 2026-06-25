@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>62.0</apiVersion>
+    <description>Autolaunched flow: validates Contact email, defaults Account, and creates a Welcome Call task. Invoked via Subflow/Apex/Flow API.</description>
+    <environments>Default</environments>
+    <interviewLabel>Flow_testing_final_3 {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>Flow_testing_final_3</label>
+    <processType>AutoLaunchedFlow</processType>
+    <status>Active</status>
+
+    <variables>
+        <name>contactId</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>true</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <name>accountId</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>true</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+
+    <start>
+        <locationX>50</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>Get_Contact</targetReference>
+        </connector>
+    </start>
+
+    <recordLookups>
+        <name>Get_Contact</name>
+        <label>Get Contact</label>
+        <locationX>50</locationX>
+        <locationY>120</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Id</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>contactId</elementReference>
+            </value>
+        </filters>
+        <getFirstRecordOnly>true</getFirstRecordOnly>
+        <object>Contact</object>
+        <queriedFields>Id</queriedFields>
+        <queriedFields>Email</queriedFields>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+        <connector>
+            <targetReference>Validate_Email_Exists</targetReference>
+        </connector>
+    </recordLookups>
+
+    <decisions>
+        <name>Validate_Email_Exists</name>
+        <label>Validate Email Exists</label>
+        <locationX>50</locationX>
+        <locationY>240</locationY>
+        <defaultConnector>
+            <targetReference>Check_Account</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Email Present</defaultConnectorLabel>
+        <rules>
+            <name>Email_Missing</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Get_Contact.Email</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>ThrowError</targetReference>
+            </connector>
+            <label>Email Missing</label>
+        </rules>
+    </decisions>
+
+    <customErrors>
+        <name>ThrowError</name>
+        <label>ThrowError</label>
+        <locationX>200</locationX>
+        <locationY>360</locationY>
+        <customErrorMessages>
+            <name>ThrowError_Message</name>
+            <errorMessage>Email is required</errorMessage>
+            <isFieldError>false</isFieldError>
+        </customErrorMessages>
+    </customErrors>
+
+    <decisions>
+        <name>Check_Account</name>
+        <label>Check Account</label>
+        <locationX>50</locationX>
+        <locationY>480</locationY>
+        <defaultConnector>
+            <targetReference>CreateWelcomeTask</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Account Present</defaultConnectorLabel>
+        <rules>
+            <name>No_Account</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>accountId</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>SetDefaultAccount</targetReference>
+            </connector>
+            <label>No Account</label>
+        </rules>
+    </decisions>
+
+    <assignments>
+        <name>SetDefaultAccount</name>
+        <label>SetDefaultAccount</label>
+        <locationX>200</locationX>
+        <locationY>600</locationY>
+        <assignmentItems>
+            <assignToReference>accountId</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Default Account Id</stringValue>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>CreateWelcomeTask</targetReference>
+        </connector>
+    </assignments>
+
+    <recordCreates>
+        <name>CreateWelcomeTask</name>
+        <label>CreateWelcomeTask</label>
+        <locationX>50</locationX>
+        <locationY>720</locationY>
+        <inputAssignments>
+            <field>WhoId</field>
+            <value>
+                <elementReference>contactId</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>WhatId</field>
+            <value>
+                <elementReference>accountId</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>Subject</field>
+            <value>
+                <stringValue>Welcome Call</stringValue>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>Status</field>
+            <value>
+                <stringValue>Not Started</stringValue>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>Priority</field>
+            <value>
+                <stringValue>Normal</stringValue>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>ActivityDate</field>
+            <value>
+                <elementReference>varActivityDate</elementReference>
+            </value>
+        </inputAssignments>
+        <object>Task</object>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordCreates>
+
+    <formulas>
+        <name>varActivityDate</name>
+        <dataType>Date</dataType>
+        <expression>TODAY() + 2</expression>
+    </formulas>
+
+</Flow>
