@@ -1,0 +1,20 @@
+{
+  "scope": "Flow_testing_final_5",
+  "directDependencies": [
+    { "from": "Flow:Flow_testing_final_5", "to": "SObject:Opportunity", "category": "DataModel", "evidence": "GetOverdueOpps queries Opportunity" },
+    { "from": "Flow:Flow_testing_final_5", "to": "SObject:Task", "category": "DataModel", "evidence": "CreateReminderTask creates Task" },
+    { "from": "Flow.Element:GetOverdueOpps", "to": "Field:Opportunity.CloseDate", "category": "DataModel", "evidence": "filter CloseDate < $Flow.CurrentDate" },
+    { "from": "Flow.Element:GetOverdueOpps", "to": "Field:Opportunity.StageName", "category": "DataModel", "evidence": "filter StageName != Closed Won" },
+    { "from": "Flow.Element:CreateReminderTask", "to": "Field:Task.Subject", "category": "DataModel", "evidence": "inputAssignment Subject = Overdue Opportunity Followup" },
+    { "from": "Flow.Element:CreateReminderTask", "to": "Field:Task.WhatId", "category": "DataModel", "evidence": "inputAssignment WhatId = LoopThroughOpps.Id" },
+    { "from": "Flow.Element:CreateReminderTask", "to": "Field:Task.OwnerId", "category": "DataModel", "evidence": "inputAssignment OwnerId = LoopThroughOpps.OwnerId" },
+    { "from": "Flow.Element:CreateReminderTask", "to": "Field:Task.Priority", "category": "DataModel", "evidence": "inputAssignment Priority = High" },
+    { "from": "Flow.Element:CreateReminderTask", "to": "Field:Task.Status", "category": "DataModel", "evidence": "inputAssignment Status = Not Started" }
+  ],
+  "indirectDependencies": [
+    { "from": "Flow.Element:GetOverdueOpps", "to": "Flow.Element:LoopThroughOpps", "category": "Automation", "evidence": "connector GetOverdueOpps -> LoopThroughOpps" },
+    { "from": "Flow.Element:LoopThroughOpps", "to": "Flow.Element:CreateReminderTask", "category": "Automation", "evidence": "nextValueConnector iterates into CreateReminderTask" },
+    { "from": "Flow.Element:CreateReminderTask", "to": "Field:Opportunity.OwnerId", "category": "DataModel", "evidence": "Task.OwnerId derived from looped Opportunity.OwnerId" },
+    { "from": "Flow.Element:CreateReminderTask", "to": "Field:Opportunity.Id", "category": "DataModel", "evidence": "Task.WhatId derived from looped Opportunity.Id" }
+  ]
+}
