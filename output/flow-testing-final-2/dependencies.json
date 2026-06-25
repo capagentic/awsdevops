@@ -1,0 +1,22 @@
+{
+  "scope": "flow-testing-final-2",
+  "direct": [
+    "Flow:Flow_testing_final_2 -> Object:Opportunity [category=Automation, evidence=start.object/recordTrigger]",
+    "Flow:Flow_testing_final_2 -> Field:Opportunity.StageName [category=DataModel, evidence=entry filterFormula ISCHANGED + decision conditions]",
+    "Flow:Flow_testing_final_2 -> Field:Opportunity.Amount [category=DataModel, evidence=decision rule High_Value_Deal GreaterThan 100000]",
+    "Flow:Flow_testing_final_2 -> Field:Opportunity.CloseDate [category=DataModel, evidence=recordUpdate UpdateCloseDate inputAssignment]",
+    "Flow:Flow_testing_final_2 -> Field:Opportunity.Id [category=DataModel, evidence=Task.WhatId = Record.Id]",
+    "Flow:Flow_testing_final_2 -> Field:Opportunity.OwnerId [category=DataModel, evidence=Task.OwnerId = Record.OwnerId]",
+    "Flow:Flow_testing_final_2 -> Object:Task [category=DataModel, evidence=recordCreates object=Task]",
+    "Element:UpdateCloseDate -> Field:Opportunity.CloseDate [category=Automation, evidence=set CloseDate=Flow.CurrentDate]",
+    "Element:CreateThankYouTask -> Object:Task [category=Automation, evidence=create Task Send Thank You Email]",
+    "Element:CreateLossTask -> Object:Task [category=Automation, evidence=create Task Capture Loss Reason]",
+    "Element:CreateManagerNotificationTask -> Object:Task [category=Automation, evidence=create Task Notify Sales Manager High Value Deal]"
+  ],
+  "indirect": [
+    "Decision:Evaluate_Stage_Change -> Element:UpdateCloseDate [category=Automation, evidence=rule Closed_Won connector]",
+    "Element:UpdateCloseDate -> Element:CreateThankYouTask [category=Automation, evidence=connector chain]",
+    "Decision:Evaluate_Stage_Change -> Element:CreateLossTask [category=Automation, evidence=rule Closed_Lost connector]",
+    "Decision:Evaluate_Stage_Change -> Element:CreateManagerNotificationTask [category=Automation, evidence=rule High_Value_Deal connector]"
+  ]
+}

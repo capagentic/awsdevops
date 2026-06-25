@@ -1,0 +1,28 @@
+{
+  "scope": "flow-testing-final-2",
+  "org": "omnistudio-org",
+  "flow": {
+    "apiName": "Flow_testing_final_2",
+    "label": "Flow_testing_final_2",
+    "type": "Record-Triggered Flow",
+    "triggerType": "RecordAfterSave",
+    "recordTriggerType": "Update",
+    "object": "Opportunity",
+    "entryCondition": "ISCHANGED($Record.StageName)",
+    "status": "Active",
+    "deployedId": "301dL00002Gfv1jQAB"
+  },
+  "components": {
+    "Objects": ["Opportunity", "Task"],
+    "Fields": ["Opportunity.StageName", "Opportunity.CloseDate", "Opportunity.Amount", "Opportunity.Id", "Opportunity.OwnerId", "Task.Subject", "Task.WhatId", "Task.OwnerId", "Task.Priority", "Task.Status"],
+    "Decisions": ["Evaluate_Stage_Change"],
+    "RecordUpdates": ["UpdateCloseDate"],
+    "RecordCreates": ["CreateThankYouTask", "CreateLossTask", "CreateManagerNotificationTask"],
+    "Formulas": ["fx_StageNameChanged"]
+  },
+  "picklistValuesValidated": {
+    "Opportunity.StageName": ["Closed Won", "Closed Lost"],
+    "Task.Priority": ["High", "Normal"],
+    "Task.Status": ["Not Started"]
+  }
+}
