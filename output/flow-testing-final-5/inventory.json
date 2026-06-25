@@ -1,0 +1,45 @@
+{
+  "scope": "Flow_testing_final_5",
+  "scopeType": "focused",
+  "generatedBy": "Salesforce Flow Analyzer & Generator Agent",
+  "org": "omnistudio-org",
+  "deploymentStatus": "Succeeded",
+  "deploymentId": "0AfdL00000cSL22SAG",
+  "components": {
+    "Flow": [
+      {
+        "apiName": "Flow_testing_final_5",
+        "label": "Flow_testing_final_5",
+        "processType": "AutoLaunchedFlow",
+        "triggerType": "Scheduled",
+        "schedule": { "frequency": "Daily", "startTime": "09:00:00.000Z", "startDate": "2024-01-01" },
+        "status": "Active",
+        "elements": [
+          { "name": "GetOverdueOpps", "type": "recordLookups", "object": "Opportunity" },
+          { "name": "LoopThroughOpps", "type": "loops", "collection": "GetOverdueOpps" },
+          { "name": "CreateReminderTask", "type": "recordCreates", "object": "Task" }
+        ]
+      }
+    ],
+    "SObject": [
+      { "apiName": "Opportunity", "role": "source" },
+      { "apiName": "Task", "role": "target" }
+    ],
+    "Field": [
+      { "object": "Opportunity", "apiName": "CloseDate", "type": "Date" },
+      { "object": "Opportunity", "apiName": "StageName", "type": "Picklist" },
+      { "object": "Opportunity", "apiName": "OwnerId", "type": "Lookup(User)" },
+      { "object": "Opportunity", "apiName": "Id", "type": "Id" },
+      { "object": "Task", "apiName": "Subject", "type": "Picklist" },
+      { "object": "Task", "apiName": "WhatId", "type": "Lookup" },
+      { "object": "Task", "apiName": "OwnerId", "type": "Lookup(User)" },
+      { "object": "Task", "apiName": "Priority", "type": "Picklist" },
+      { "object": "Task", "apiName": "Status", "type": "Picklist" }
+    ],
+    "PicklistValue": [
+      { "object": "Opportunity", "field": "StageName", "value": "Closed Won" },
+      { "object": "Task", "field": "Priority", "value": "High" },
+      { "object": "Task", "field": "Status", "value": "Not Started" }
+    ]
+  }
+}
